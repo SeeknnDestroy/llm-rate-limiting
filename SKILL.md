@@ -1,9 +1,9 @@
 ---
-name: applying-resilience-patterns
-description: "Trigger this skill when the user asks to /rate-limit, apply rate limiting, throttling, backoff, or resilience to LLM API usage. Instructs the agent on how to deterministically implement exponential backoff with jitter, circuit breakers, header parsing, semantic caching, and orchestration concurrency controls."
+name: llm-rate-limiting
+description: "Trigger this skill when the user asks to /rate-limit, apply rate limiting, throttling, backoff, quota handling, usage-tier-aware pacing, or resilience to LLM API usage. Instructs the agent on how to deterministically implement exponential backoff with jitter, circuit breakers, header parsing, semantic caching, and provider-specific concurrency controls."
 ---
 
-# Applying Resilience Patterns
+# LLM Rate Limiting
 
 Implement resilient LLM integrations with deterministic retry, throttling, and concurrency controls. Read `scripts/resilience_templates.py` before editing Python retry or breaker code, then adapt that template to the target project instead of writing custom control flow from scratch. When the provider is OpenAI, also read `references/openai-rate-limits.md` before choosing quotas, retry behavior, or pacing assumptions.
 
