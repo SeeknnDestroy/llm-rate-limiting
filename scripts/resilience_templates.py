@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import logging
+import re
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from email.utils import parsedate_to_datetime
@@ -40,10 +41,12 @@ class LLMHTTPError(RuntimeError):
         *,
         status_code: int,
         headers: Optional[Mapping[str, str]] = None,
+        error_code: Optional[str] = None,
     ) -> None:
         super().__init__(message)
         self.status_code = status_code
         self.headers = dict(headers or {})
+        self.error_code = error_code
 
 
 class LLMBadRequestError(LLMHTTPError):
@@ -61,6 +64,31 @@ class LLMRetryableError(LLMHTTPError):
 @dataclass(frozen=True)
 class DemoResponse:
     headers: Mapping[str, str]
+
+
+@dataclass(frozen=True)
+class OpenAIRateLimitState:
+    request_limit: Optional[int]
+    token_limit: Optional[int]
+    request_remaining: Optional[int]
+    token_remaining: Optional[int]
+    request_reset_seconds: Optional[float]
+    token_reset_seconds: Optional[float]
+
+
+def parse_int_header(value: Optional[str]) -> Optional[int]:
+    """Parse an integer header when present."""
+    if value is None:
+        return None
+
+    raw_value = value.strip()
+    if not raw_value:
+        return None
+
+    try:
+        return int(raw_value)
+    except ValueError:
+        return None
 
 
 def parse_retry_after_seconds(retry_after_value: Optional[str]) -> Optional[float]:
@@ -94,9 +122,65 @@ def extract_retry_after_seconds(response: Any) -> Optional[float]:
     return parse_retry_after_seconds(retry_after_value)
 
 
+def parse_openai_reset_duration(value: Optional[str]) -> Optional[float]:
+    """Parse OpenAI reset values such as 1s, 6m0s, or 1h2m3s."""
+    if value is None:
+        return None
+
+    raw_value = value.strip()
+    if not raw_value:
+        return None
+
+    pattern = re.compile(r"(?:(?P<hours>\d+)h)?(?:(?P<minutes>\d+)m)?(?:(?P<seconds>\d+)s)?$")
+    match = pattern.fullmatch(raw_value)
+    if match is None:
+        return None
+
+    hours = int(match.group("hours") or 0)
+    minutes = int(match.group("minutes") or 0)
+    seconds = int(match.group("seconds") or 0)
+    return float(hours * 3600 + minutes * 60 + seconds)
+
+
+def extract_openai_rate_limit_state(headers: Mapping[str, str]) -> OpenAIRateLimitState:
+    """Extract OpenAI rate-limit state from response headers."""
+    return OpenAIRateLimitState(
+        request_limit=parse_int_header(headers.get("x-ratelimit-limit-requests")),
+        token_limit=parse_int_header(headers.get("x-ratelimit-limit-tokens")),
+        request_remaining=parse_int_header(headers.get("x-ratelimit-remaining-requests")),
+        token_remaining=parse_int_header(headers.get("x-ratelimit-remaining-tokens")),
+        request_reset_seconds=parse_openai_reset_duration(
+            headers.get("x-ratelimit-reset-requests")
+        ),
+        token_reset_seconds=parse_openai_reset_duration(
+            headers.get("x-ratelimit-reset-tokens")
+        ),
+    )
+
+
+def compute_openai_backpressure_delay(headers: Mapping[str, str]) -> Optional[float]:
+    """Choose the binding OpenAI reset delay when a bucket is exhausted."""
+    rate_limit_state = extract_openai_rate_limit_state(headers)
+    candidate_delays = []
+
+    if rate_limit_state.request_remaining == 0 and rate_limit_state.request_reset_seconds is not None:
+        candidate_delays.append(rate_limit_state.request_reset_seconds)
+
+    if rate_limit_state.token_remaining == 0 and rate_limit_state.token_reset_seconds is not None:
+        candidate_delays.append(rate_limit_state.token_reset_seconds)
+
+    if not candidate_delays:
+        return None
+
+    return max(candidate_delays)
+
+
 def is_retryable_llm_error(error: BaseException) -> bool:
     """Retry only transient LLM transport and quota failures."""
     if not isinstance(error, LLMHTTPError):
+        return False
+
+    if error.error_code == "insufficient_quota":
         return False
 
     if error.status_code in {429, 503}:
@@ -120,6 +204,10 @@ def wait_for_retry_after_or_jitter(retry_state: Any) -> float:
         )
         if retry_after_seconds is not None:
             return retry_after_seconds
+
+        openai_backpressure_delay = compute_openai_backpressure_delay(error.headers)
+        if openai_backpressure_delay is not None:
+            return openai_backpressure_delay
 
     if _jitter_wait is None:
         raise RuntimeError(
@@ -183,6 +271,24 @@ def demo_retry_after() -> Optional[float]:
     return retry_after_seconds
 
 
+def demo_openai_headers() -> OpenAIRateLimitState:
+    """Demonstrate OpenAI rate-limit header parsing."""
+    headers = {
+        "x-ratelimit-limit-requests": "60",
+        "x-ratelimit-limit-tokens": "150000",
+        "x-ratelimit-remaining-requests": "0",
+        "x-ratelimit-remaining-tokens": "149984",
+        "x-ratelimit-reset-requests": "1s",
+        "x-ratelimit-reset-tokens": "6m0s",
+    }
+    rate_limit_state = extract_openai_rate_limit_state(headers)
+    binding_delay = compute_openai_backpressure_delay(headers)
+    print(f"OpenAI request remaining: {rate_limit_state.request_remaining}")
+    print(f"OpenAI token remaining: {rate_limit_state.token_remaining}")
+    print(f"OpenAI binding delay: {binding_delay}")
+    return rate_limit_state
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(
         description="Run lightweight demos for the resilience template."
@@ -192,12 +298,21 @@ def main() -> int:
         action="store_true",
         help="Print the parsed Retry-After delay from a demo response.",
     )
+    parser.add_argument(
+        "--demo-openai-headers",
+        action="store_true",
+        help="Print parsed OpenAI rate-limit headers and binding delay.",
+    )
     args = parser.parse_args()
 
     logging.basicConfig(level=logging.INFO)
 
     if args.demo_retry_after:
         demo_retry_after()
+        return 0
+
+    if args.demo_openai_headers:
+        demo_openai_headers()
         return 0
 
     print("Dependencies detected:")
