@@ -1,0 +1,4 @@
+interface:
+  display_name: "Applying Resilience Patterns"
+  short_description: "Apply resilient LLM API patterns"
+  default_prompt: "Use $applying-resilience-patterns to add resilient rate limiting, retries, and concurrency controls to my LLM integration."
