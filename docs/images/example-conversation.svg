@@ -1,18 +1,24 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="680" viewBox="0 0 1080 680" role="img" aria-labelledby="title desc">
-  <title id="title">Example conversation prompt for the LLM Rate Limiting skill</title>
-  <desc id="desc">Mock conversation showing OpenAI and Groq rate-limiting requests.</desc>
-  <rect width="1080" height="680" fill="#0f172a"/>
-  <rect x="60" y="40" width="960" height="600" rx="24" fill="#111827" stroke="#334155" stroke-width="2"/>
-  <text x="92" y="96" fill="#f8fafc" font-family="Inter, Arial, sans-serif" font-size="30">Example prompts this skill should trigger on</text>
-  <rect x="92" y="136" width="896" height="120" rx="18" fill="#1e293b"/>
-  <text x="122" y="186" fill="#93c5fd" font-family="Inter, Arial, sans-serif" font-size="24">User</text>
-  <text x="122" y="224" fill="#e2e8f0" font-family="Menlo, Monaco, monospace" font-size="22">I'm on Tier 1 for OpenAI. Add retries and pacing for gpt-4.1 without guessing</text>
-  <rect x="92" y="286" width="896" height="132" rx="18" fill="#172554"/>
-  <text x="122" y="336" fill="#bfdbfe" font-family="Inter, Arial, sans-serif" font-size="24">Skill response shape</text>
-  <text x="122" y="374" fill="#e2e8f0" font-family="Menlo, Monaco, monospace" font-size="20">- parse OpenAI x-ratelimit-* headers</text>
-  <text x="122" y="404" fill="#e2e8f0" font-family="Menlo, Monaco, monospace" font-size="20">- treat Tier 1 as budget context, not exact per-model RPM/TPM</text>
-  <rect x="92" y="450" width="896" height="120" rx="18" fill="#1e293b"/>
-  <text x="122" y="500" fill="#93c5fd" font-family="Inter, Arial, sans-serif" font-size="24">User</text>
-  <text x="122" y="538" fill="#e2e8f0" font-family="Menlo, Monaco, monospace" font-size="22">Handle Groq 429s and pace requests using Groq headers and service tiers</text>
-  <text x="92" y="618" fill="#94a3b8" font-family="Inter, Arial, sans-serif" font-size="22">The public README explains these prompts; the installable skill remains in skills/llm-rate-limiting/.</text>
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="760" viewBox="0 0 1200 760" role="img" aria-labelledby="title desc">
+  <title id="title">Prompt examples for the LLM Rate Limiting skill</title>
+  <desc id="desc">Diagram showing example OpenAI and Groq prompts that should trigger the skill.</desc>
+  <rect width="1200" height="760" fill="#0f172a"/>
+  <rect x="48" y="48" width="1104" height="664" rx="28" fill="#111827" stroke="#334155" stroke-width="2"/>
+
+  <text x="88" y="108" fill="#f8fafc" font-family="Inter, Arial, sans-serif" font-size="36" font-weight="700">Prompt examples</text>
+  <text x="88" y="146" fill="#94a3b8" font-family="Inter, Arial, sans-serif" font-size="22">These are readable examples, not fake product screenshots.</text>
+
+  <rect x="88" y="192" width="1024" height="132" rx="20" fill="#1e293b"/>
+  <text x="120" y="238" fill="#93c5fd" font-family="Inter, Arial, sans-serif" font-size="24" font-weight="700">OpenAI trigger example</text>
+  <text x="120" y="278" fill="#e2e8f0" font-family="Menlo, Monaco, monospace" font-size="20">"I'm on Tier 1 for OpenAI."</text>
+  <text x="120" y="308" fill="#e2e8f0" font-family="Menlo, Monaco, monospace" font-size="20">"Add retries and pacing for gpt-4.1 without guessing exact limits."</text>
+
+  <rect x="88" y="356" width="1024" height="170" rx="20" fill="#172554"/>
+  <text x="120" y="402" fill="#bfdbfe" font-family="Inter, Arial, sans-serif" font-size="24" font-weight="700">Expected behavior</text>
+  <text x="120" y="442" fill="#e2e8f0" font-family="Menlo, Monaco, monospace" font-size="19">- parse OpenAI x-ratelimit-* headers</text>
+  <text x="120" y="472" fill="#e2e8f0" font-family="Menlo, Monaco, monospace" font-size="19">- treat Tier 1 as budget context, not exact per-model RPM/TPM</text>
+  <text x="120" y="502" fill="#e2e8f0" font-family="Menlo, Monaco, monospace" font-size="19">- keep logic concentrated at the shared LLM boundary</text>
+
+  <rect x="88" y="560" width="1024" height="104" rx="20" fill="#1e293b"/>
+  <text x="120" y="606" fill="#93c5fd" font-family="Inter, Arial, sans-serif" font-size="24" font-weight="700">Groq trigger example</text>
+  <text x="120" y="646" fill="#e2e8f0" font-family="Menlo, Monaco, monospace" font-size="20">"Handle Groq 429s and pace requests using Groq headers and service tiers."</text>
 </svg>

@@ -2,7 +2,7 @@
 
 `llm-rate-limiting` is a public skill project for teaching coding agents how to add provider-aware rate limiting, retries, quota handling, and resilience patterns to LLM integrations. It is built for real API constraints such as OpenAI usage tiers, response headers, shared model buckets, and Groq rate-limit semantics.
 
-![Skill layout](./docs/images/skill-layout.svg)
+![Project layout diagram](./docs/images/skill-layout.svg)
 
 ## What This Project Contains
 
@@ -20,7 +20,7 @@
 
 ## Install
 
-### Codex / Claude Code style local install
+### Auto-detect local install
 
 ```bash
 git clone https://github.com/SeeknnDestroy/llm-rate-limiting.git
@@ -28,7 +28,19 @@ cd llm-rate-limiting
 bash scripts/sync_local_skill.sh
 ```
 
-This copies the skill from `skills/llm-rate-limiting/` into `${CODEX_HOME:-$HOME/.codex}/skills/llm-rate-limiting`.
+By default, the script will:
+
+- use an existing Codex-style skills directory if one is present
+- otherwise use an existing Claude Code-style skills directory if one is present
+- otherwise fall back to `${CODEX_HOME:-$HOME/.codex}/skills`
+
+### Explicit target selection
+
+```bash
+bash scripts/sync_local_skill.sh --target codex
+bash scripts/sync_local_skill.sh --target claude
+bash scripts/sync_local_skill.sh --target-dir /absolute/path/to/skills
+```
 
 ### Manual install
 
@@ -36,6 +48,7 @@ Copy the `skills/llm-rate-limiting/` folder into your local skills directory:
 
 ```bash
 cp -R skills/llm-rate-limiting "${CODEX_HOME:-$HOME/.codex}/skills/"
+cp -R skills/llm-rate-limiting "${CLAUDE_HOME:-$HOME/.claude}/skills/"
 ```
 
 ## Example Prompts
@@ -44,7 +57,7 @@ cp -R skills/llm-rate-limiting "${CODEX_HOME:-$HOME/.codex}/skills/"
 - `I am on Tier 1 for OpenAI. Help me stay under model-specific rate limits without guessing from memory.`
 - `Handle Groq 429s and pace requests using Groq headers and service tiers.`
 
-![Example conversation](./docs/images/example-conversation.svg)
+![Prompt examples diagram](./docs/images/example-conversation.svg)
 
 ## Repository Layout
 

@@ -1,25 +1,31 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="620" viewBox="0 0 1080 620" role="img" aria-labelledby="title desc">
-  <title id="title">LLM Rate Limiting repository layout</title>
-  <desc id="desc">Diagram showing the repo root with human docs and the installable skill in a nested skills folder.</desc>
-  <rect width="1080" height="620" fill="#0b1220"/>
-  <rect x="48" y="48" width="984" height="524" rx="24" fill="#111827" stroke="#334155" stroke-width="2"/>
-  <text x="84" y="112" fill="#f8fafc" font-family="Menlo, Monaco, monospace" font-size="34">llm-rate-limiting/</text>
-  <text x="112" y="164" fill="#93c5fd" font-family="Menlo, Monaco, monospace" font-size="24">README.md</text>
-  <text x="112" y="202" fill="#93c5fd" font-family="Menlo, Monaco, monospace" font-size="24">docs/images/skill-layout.svg</text>
-  <text x="112" y="240" fill="#93c5fd" font-family="Menlo, Monaco, monospace" font-size="24">docs/images/example-conversation.svg</text>
-  <text x="112" y="278" fill="#93c5fd" font-family="Menlo, Monaco, monospace" font-size="24">scripts/sync_local_skill.sh</text>
-  <text x="112" y="330" fill="#fde68a" font-family="Menlo, Monaco, monospace" font-size="24">skills/llm-rate-limiting/</text>
-  <text x="152" y="370" fill="#fca5a5" font-family="Menlo, Monaco, monospace" font-size="22">SKILL.md</text>
-  <text x="152" y="404" fill="#fca5a5" font-family="Menlo, Monaco, monospace" font-size="22">agents/openai.yaml</text>
-  <text x="152" y="438" fill="#fca5a5" font-family="Menlo, Monaco, monospace" font-size="22">references/openai-rate-limits.md</text>
-  <text x="152" y="472" fill="#fca5a5" font-family="Menlo, Monaco, monospace" font-size="22">references/groq-rate-limits.md</text>
-  <text x="152" y="506" fill="#fca5a5" font-family="Menlo, Monaco, monospace" font-size="22">references/examples.md</text>
-  <text x="152" y="540" fill="#fca5a5" font-family="Menlo, Monaco, monospace" font-size="22">references/troubleshooting.md</text>
-  <text x="602" y="164" fill="#cbd5e1" font-family="Inter, Arial, sans-serif" font-size="24">Public project files live at the root.</text>
-  <text x="602" y="204" fill="#cbd5e1" font-family="Inter, Arial, sans-serif" font-size="24">The installable skill stays isolated and clean.</text>
-  <text x="602" y="244" fill="#cbd5e1" font-family="Inter, Arial, sans-serif" font-size="24">This keeps GitHub docs and skill-folder rules compatible.</text>
-  <rect x="598" y="300" width="368" height="156" rx="20" fill="#1d4ed8" opacity="0.18" stroke="#60a5fa"/>
-  <text x="628" y="356" fill="#dbeafe" font-family="Inter, Arial, sans-serif" font-size="28">Source of truth:</text>
-  <text x="628" y="398" fill="#ffffff" font-family="Menlo, Monaco, monospace" font-size="24">repo/skills/llm-rate-limiting</text>
-  <text x="628" y="440" fill="#dbeafe" font-family="Inter, Arial, sans-serif" font-size="24">Sync target: ~/.codex/skills/llm-rate-limiting</text>
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="720" viewBox="0 0 1200 720" role="img" aria-labelledby="title desc">
+  <title id="title">LLM Rate Limiting project layout diagram</title>
+  <desc id="desc">Readable diagram showing repo docs at the root and the installable skill in a nested folder.</desc>
+  <rect width="1200" height="720" fill="#0f172a"/>
+  <rect x="48" y="48" width="1104" height="624" rx="28" fill="#111827" stroke="#334155" stroke-width="2"/>
+
+  <text x="88" y="108" fill="#f8fafc" font-family="Inter, Arial, sans-serif" font-size="36" font-weight="700">Project layout</text>
+  <text x="88" y="146" fill="#94a3b8" font-family="Inter, Arial, sans-serif" font-size="22">Repo docs stay at the root. The installable skill stays isolated in its own folder.</text>
+
+  <rect x="88" y="188" width="470" height="416" rx="22" fill="#0b1220" stroke="#334155"/>
+  <text x="120" y="236" fill="#fde68a" font-family="Menlo, Monaco, monospace" font-size="30">llm-rate-limiting/</text>
+  <text x="148" y="286" fill="#93c5fd" font-family="Menlo, Monaco, monospace" font-size="22">README.md</text>
+  <text x="148" y="322" fill="#93c5fd" font-family="Menlo, Monaco, monospace" font-size="22">docs/images/</text>
+  <text x="148" y="358" fill="#93c5fd" font-family="Menlo, Monaco, monospace" font-size="22">scripts/sync_local_skill.sh</text>
+  <text x="148" y="410" fill="#fde68a" font-family="Menlo, Monaco, monospace" font-size="22">skills/llm-rate-limiting/</text>
+  <text x="184" y="448" fill="#fca5a5" font-family="Menlo, Monaco, monospace" font-size="20">SKILL.md</text>
+  <text x="184" y="480" fill="#fca5a5" font-family="Menlo, Monaco, monospace" font-size="20">agents/openai.yaml</text>
+  <text x="184" y="512" fill="#fca5a5" font-family="Menlo, Monaco, monospace" font-size="20">references/openai-rate-limits.md</text>
+  <text x="184" y="544" fill="#fca5a5" font-family="Menlo, Monaco, monospace" font-size="20">references/groq-rate-limits.md</text>
+  <text x="184" y="576" fill="#fca5a5" font-family="Menlo, Monaco, monospace" font-size="20">scripts/resilience_templates.py</text>
+
+  <rect x="602" y="188" width="510" height="190" rx="22" fill="#172554" stroke="#60a5fa"/>
+  <text x="636" y="244" fill="#dbeafe" font-family="Inter, Arial, sans-serif" font-size="28" font-weight="700">Why this split exists</text>
+  <text x="636" y="292" fill="#ffffff" font-family="Inter, Arial, sans-serif" font-size="24">- Human docs and visuals belong at the repo root</text>
+  <text x="636" y="328" fill="#ffffff" font-family="Inter, Arial, sans-serif" font-size="24">- The installable skill folder stays clean and portable</text>
+
+  <rect x="602" y="410" width="510" height="154" rx="22" fill="#1e293b" stroke="#475569"/>
+  <text x="636" y="466" fill="#bfdbfe" font-family="Inter, Arial, sans-serif" font-size="28" font-weight="700">Sync targets</text>
+  <text x="636" y="510" fill="#e2e8f0" font-family="Menlo, Monaco, monospace" font-size="20">--target codex  -> ~/.codex/skills</text>
+  <text x="636" y="542" fill="#e2e8f0" font-family="Menlo, Monaco, monospace" font-size="20">--target claude -> ~/.claude/skills</text>
 </svg>
