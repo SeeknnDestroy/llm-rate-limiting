@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Reusable resilience patterns for LLM HTTP integrations."""
+"""Reusable resilience patterns for OpenAI and Groq HTTP integrations."""
 
 from __future__ import annotations
 
@@ -30,20 +30,23 @@ except ImportError:  # pragma: no cover - optional dependency for template use
     wait_exponential_jitter = None
 
 LOGGER = logging.getLogger("llm_resilience")
+SUPPORTED_PROVIDERS = {"openai", "groq"}
 
 
 class LLMHTTPError(RuntimeError):
-    """Base error that carries HTTP metadata for retry and breaker policies."""
+    """Base error carrying provider and HTTP metadata for retry policies."""
 
     def __init__(
         self,
         message: str,
         *,
+        provider: Optional[str] = None,
         status_code: int,
         headers: Optional[Mapping[str, str]] = None,
         error_code: Optional[str] = None,
     ) -> None:
         super().__init__(message)
+        self.provider = provider
         self.status_code = status_code
         self.headers = dict(headers or {})
         self.error_code = error_code
@@ -58,7 +61,7 @@ class LLMAuthError(LLMHTTPError):
 
 
 class LLMRetryableError(LLMHTTPError):
-    """Use for 429, 503, and transient 5xx provider responses."""
+    """Use for retryable provider throttling and transient server failures."""
 
 
 @dataclass(frozen=True)
@@ -74,6 +77,16 @@ class OpenAIRateLimitState:
     token_remaining: Optional[int]
     request_reset_seconds: Optional[float]
     token_reset_seconds: Optional[float]
+
+
+@dataclass(frozen=True)
+class GroqRateLimitState:
+    requests_per_day_limit: Optional[int]
+    tokens_per_minute_limit: Optional[int]
+    requests_per_day_remaining: Optional[int]
+    tokens_per_minute_remaining: Optional[int]
+    requests_per_day_reset_seconds: Optional[float]
+    tokens_per_minute_reset_seconds: Optional[float]
 
 
 def parse_int_header(value: Optional[str]) -> Optional[int]:
@@ -116,14 +129,8 @@ def parse_retry_after_seconds(retry_after_value: Optional[str]) -> Optional[floa
     return max(delay_seconds, 0.0)
 
 
-def extract_retry_after_seconds(response: Any) -> Optional[float]:
-    """Read response.headers.get('Retry-After') and normalize it."""
-    retry_after_value = response.headers.get("Retry-After")
-    return parse_retry_after_seconds(retry_after_value)
-
-
-def parse_openai_reset_duration(value: Optional[str]) -> Optional[float]:
-    """Parse OpenAI reset values such as 1s, 6m0s, or 1h2m3s."""
+def parse_rate_limit_duration_seconds(value: Optional[str]) -> Optional[float]:
+    """Parse provider reset durations such as 1s, 6m0s, or 2m59.56s."""
     if value is None:
         return None
 
@@ -131,15 +138,31 @@ def parse_openai_reset_duration(value: Optional[str]) -> Optional[float]:
     if not raw_value:
         return None
 
-    pattern = re.compile(r"(?:(?P<hours>\d+)h)?(?:(?P<minutes>\d+)m)?(?:(?P<seconds>\d+)s)?$")
+    pattern = re.compile(
+        r"(?:(?P<hours>\d+(?:\.\d+)?)h)?"
+        r"(?:(?P<minutes>\d+(?:\.\d+)?)m)?"
+        r"(?:(?P<seconds>\d+(?:\.\d+)?)s)?$"
+    )
     match = pattern.fullmatch(raw_value)
     if match is None:
         return None
 
-    hours = int(match.group("hours") or 0)
-    minutes = int(match.group("minutes") or 0)
-    seconds = int(match.group("seconds") or 0)
-    return float(hours * 3600 + minutes * 60 + seconds)
+    hours = float(match.group("hours") or 0.0)
+    minutes = float(match.group("minutes") or 0.0)
+    seconds = float(match.group("seconds") or 0.0)
+
+    if hours == 0.0 and minutes == 0.0 and seconds == 0.0:
+        return None
+
+    return hours * 3600 + minutes * 60 + seconds
+
+
+def extract_retry_after_seconds(response: Any) -> Optional[float]:
+    """Read response.headers.get('Retry-After') and normalize it."""
+    retry_after_value = response.headers.get("Retry-After") or response.headers.get(
+        "retry-after"
+    )
+    return parse_retry_after_seconds(retry_after_value)
 
 
 def extract_openai_rate_limit_state(headers: Mapping[str, str]) -> OpenAIRateLimitState:
@@ -149,10 +172,30 @@ def extract_openai_rate_limit_state(headers: Mapping[str, str]) -> OpenAIRateLim
         token_limit=parse_int_header(headers.get("x-ratelimit-limit-tokens")),
         request_remaining=parse_int_header(headers.get("x-ratelimit-remaining-requests")),
         token_remaining=parse_int_header(headers.get("x-ratelimit-remaining-tokens")),
-        request_reset_seconds=parse_openai_reset_duration(
+        request_reset_seconds=parse_rate_limit_duration_seconds(
             headers.get("x-ratelimit-reset-requests")
         ),
-        token_reset_seconds=parse_openai_reset_duration(
+        token_reset_seconds=parse_rate_limit_duration_seconds(
+            headers.get("x-ratelimit-reset-tokens")
+        ),
+    )
+
+
+def extract_groq_rate_limit_state(headers: Mapping[str, str]) -> GroqRateLimitState:
+    """Extract Groq rate-limit state using Groq-specific header meanings."""
+    return GroqRateLimitState(
+        requests_per_day_limit=parse_int_header(headers.get("x-ratelimit-limit-requests")),
+        tokens_per_minute_limit=parse_int_header(headers.get("x-ratelimit-limit-tokens")),
+        requests_per_day_remaining=parse_int_header(
+            headers.get("x-ratelimit-remaining-requests")
+        ),
+        tokens_per_minute_remaining=parse_int_header(
+            headers.get("x-ratelimit-remaining-tokens")
+        ),
+        requests_per_day_reset_seconds=parse_rate_limit_duration_seconds(
+            headers.get("x-ratelimit-reset-requests")
+        ),
+        tokens_per_minute_reset_seconds=parse_rate_limit_duration_seconds(
             headers.get("x-ratelimit-reset-tokens")
         ),
     )
@@ -163,10 +206,16 @@ def compute_openai_backpressure_delay(headers: Mapping[str, str]) -> Optional[fl
     rate_limit_state = extract_openai_rate_limit_state(headers)
     candidate_delays = []
 
-    if rate_limit_state.request_remaining == 0 and rate_limit_state.request_reset_seconds is not None:
+    if (
+        rate_limit_state.request_remaining == 0
+        and rate_limit_state.request_reset_seconds is not None
+    ):
         candidate_delays.append(rate_limit_state.request_reset_seconds)
 
-    if rate_limit_state.token_remaining == 0 and rate_limit_state.token_reset_seconds is not None:
+    if (
+        rate_limit_state.token_remaining == 0
+        and rate_limit_state.token_reset_seconds is not None
+    ):
         candidate_delays.append(rate_limit_state.token_reset_seconds)
 
     if not candidate_delays:
@@ -175,13 +224,54 @@ def compute_openai_backpressure_delay(headers: Mapping[str, str]) -> Optional[fl
     return max(candidate_delays)
 
 
+def compute_groq_backpressure_delay(headers: Mapping[str, str]) -> Optional[float]:
+    """Choose the binding Groq reset delay when RPD or TPM is exhausted."""
+    rate_limit_state = extract_groq_rate_limit_state(headers)
+    candidate_delays = []
+
+    if (
+        rate_limit_state.requests_per_day_remaining == 0
+        and rate_limit_state.requests_per_day_reset_seconds is not None
+    ):
+        candidate_delays.append(rate_limit_state.requests_per_day_reset_seconds)
+
+    if (
+        rate_limit_state.tokens_per_minute_remaining == 0
+        and rate_limit_state.tokens_per_minute_reset_seconds is not None
+    ):
+        candidate_delays.append(rate_limit_state.tokens_per_minute_reset_seconds)
+
+    if not candidate_delays:
+        return None
+
+    return max(candidate_delays)
+
+
+def compute_provider_backpressure_delay(
+    provider: Optional[str], headers: Mapping[str, str]
+) -> Optional[float]:
+    """Dispatch to provider-specific backpressure calculation."""
+    if provider == "openai":
+        return compute_openai_backpressure_delay(headers)
+
+    if provider == "groq":
+        return compute_groq_backpressure_delay(headers)
+
+    return None
+
+
 def is_retryable_llm_error(error: BaseException) -> bool:
-    """Retry only transient LLM transport and quota failures."""
+    """Retry throttling, transient server failures, and Groq flex capacity spikes."""
     if not isinstance(error, LLMHTTPError):
         return False
 
-    if error.error_code == "insufficient_quota":
+    if error.error_code in {"insufficient_quota", "billing_hard_limit_reached"}:
         return False
+
+    if error.provider == "groq" and (
+        error.status_code == 498 or error.error_code == "capacity_exceeded"
+    ):
+        return True
 
     if error.status_code in {429, 503}:
         return True
@@ -196,18 +286,21 @@ else:  # pragma: no cover - exercised only without tenacity installed
 
 
 def wait_for_retry_after_or_jitter(retry_state: Any) -> float:
-    """Honor Retry-After first, then fall back to exponential jitter."""
+    """Honor Retry-After first, then provider resets, then exponential jitter."""
     error = retry_state.outcome.exception() if retry_state.outcome else None
     if isinstance(error, LLMHTTPError):
         retry_after_seconds = parse_retry_after_seconds(
-            error.headers.get("Retry-After")
+            error.headers.get("Retry-After") or error.headers.get("retry-after")
         )
         if retry_after_seconds is not None:
             return retry_after_seconds
 
-        openai_backpressure_delay = compute_openai_backpressure_delay(error.headers)
-        if openai_backpressure_delay is not None:
-            return openai_backpressure_delay
+        provider_backpressure_delay = compute_provider_backpressure_delay(
+            error.provider,
+            error.headers,
+        )
+        if provider_backpressure_delay is not None:
+            return provider_backpressure_delay
 
     if _jitter_wait is None:
         raise RuntimeError(
@@ -226,13 +319,21 @@ if retry is not None:
         before_sleep=before_sleep_log(LOGGER, logging.WARNING),
         reraise=True,
     )
-    def send_with_retry(request_fn: Callable[..., Any], *args: Any, **kwargs: Any) -> Any:
+    def send_with_retry(
+        request_fn: Callable[..., Any],
+        *args: Any,
+        **kwargs: Any,
+    ) -> Any:
         """Wrap the provider call in header-aware retry logic."""
         return request_fn(*args, **kwargs)
 
 else:  # pragma: no cover - exercised only without tenacity installed
 
-    def send_with_retry(request_fn: Callable[..., Any], *args: Any, **kwargs: Any) -> Any:
+    def send_with_retry(
+        request_fn: Callable[..., Any],
+        *args: Any,
+        **kwargs: Any,
+    ) -> Any:
         raise RuntimeError("Install tenacity to use send_with_retry().")
 
 
@@ -255,9 +356,10 @@ def send_with_breaker(request_fn: Callable[..., Any], *args: Any, **kwargs: Any)
 
 
 def failing_request() -> None:
-    """Demonstrate a retryable provider failure."""
+    """Demonstrate a retryable OpenAI rate-limit failure."""
     raise LLMRetryableError(
         "provider throttled request",
+        provider="openai",
         status_code=429,
         headers={"Retry-After": "3"},
     )
@@ -289,6 +391,27 @@ def demo_openai_headers() -> OpenAIRateLimitState:
     return rate_limit_state
 
 
+def demo_groq_headers() -> GroqRateLimitState:
+    """Demonstrate Groq rate-limit header parsing."""
+    headers = {
+        "x-ratelimit-limit-requests": "14400",
+        "x-ratelimit-limit-tokens": "18000",
+        "x-ratelimit-remaining-requests": "0",
+        "x-ratelimit-remaining-tokens": "17997",
+        "x-ratelimit-reset-requests": "2m59.56s",
+        "x-ratelimit-reset-tokens": "7.66s",
+        "retry-after": "8",
+    }
+    rate_limit_state = extract_groq_rate_limit_state(headers)
+    binding_delay = compute_groq_backpressure_delay(headers)
+    retry_after_seconds = parse_retry_after_seconds(headers.get("retry-after"))
+    print(f"Groq RPD remaining: {rate_limit_state.requests_per_day_remaining}")
+    print(f"Groq TPM remaining: {rate_limit_state.tokens_per_minute_remaining}")
+    print(f"Groq binding delay: {binding_delay}")
+    print(f"Groq retry-after: {retry_after_seconds}")
+    return rate_limit_state
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(
         description="Run lightweight demos for the resilience template."
@@ -303,6 +426,11 @@ def main() -> int:
         action="store_true",
         help="Print parsed OpenAI rate-limit headers and binding delay.",
     )
+    parser.add_argument(
+        "--demo-groq-headers",
+        action="store_true",
+        help="Print parsed Groq rate-limit headers and binding delay.",
+    )
     args = parser.parse_args()
 
     logging.basicConfig(level=logging.INFO)
@@ -315,10 +443,14 @@ def main() -> int:
         demo_openai_headers()
         return 0
 
-    print("Dependencies detected:")
-    print(f"  tenacity: {'yes' if retry is not None else 'no'}")
-    print(f"  pybreaker: {'yes' if pybreaker is not None else 'no'}")
-    print("Run with --demo-retry-after to exercise header parsing.")
+    if args.demo_groq_headers:
+        demo_groq_headers()
+        return 0
+
+    print("Supported providers:")
+    for provider in sorted(SUPPORTED_PROVIDERS):
+        print(f"  - {provider}")
+    print("Run with --demo-retry-after, --demo-openai-headers, or --demo-groq-headers.")
     return 0
 
 
