@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="620" viewBox="0 0 1080 620" role="img" aria-labelledby="title desc">
+  <title id="title">LLM Rate Limiting repository layout</title>
+  <desc id="desc">Diagram showing the repo root with human docs and the installable skill in a nested skills folder.</desc>
+  <rect width="1080" height="620" fill="#0b1220"/>
+  <rect x="48" y="48" width="984" height="524" rx="24" fill="#111827" stroke="#334155" stroke-width="2"/>
+  <text x="84" y="112" fill="#f8fafc" font-family="Menlo, Monaco, monospace" font-size="34">llm-rate-limiting/</text>
+  <text x="112" y="164" fill="#93c5fd" font-family="Menlo, Monaco, monospace" font-size="24">README.md</text>
+  <text x="112" y="202" fill="#93c5fd" font-family="Menlo, Monaco, monospace" font-size="24">docs/images/skill-layout.svg</text>
+  <text x="112" y="240" fill="#93c5fd" font-family="Menlo, Monaco, monospace" font-size="24">docs/images/example-conversation.svg</text>
+  <text x="112" y="278" fill="#93c5fd" font-family="Menlo, Monaco, monospace" font-size="24">scripts/sync_local_skill.sh</text>
+  <text x="112" y="330" fill="#fde68a" font-family="Menlo, Monaco, monospace" font-size="24">skills/llm-rate-limiting/</text>
+  <text x="152" y="370" fill="#fca5a5" font-family="Menlo, Monaco, monospace" font-size="22">SKILL.md</text>
+  <text x="152" y="404" fill="#fca5a5" font-family="Menlo, Monaco, monospace" font-size="22">agents/openai.yaml</text>
+  <text x="152" y="438" fill="#fca5a5" font-family="Menlo, Monaco, monospace" font-size="22">references/openai-rate-limits.md</text>
+  <text x="152" y="472" fill="#fca5a5" font-family="Menlo, Monaco, monospace" font-size="22">references/groq-rate-limits.md</text>
+  <text x="152" y="506" fill="#fca5a5" font-family="Menlo, Monaco, monospace" font-size="22">references/examples.md</text>
+  <text x="152" y="540" fill="#fca5a5" font-family="Menlo, Monaco, monospace" font-size="22">references/troubleshooting.md</text>
+  <text x="602" y="164" fill="#cbd5e1" font-family="Inter, Arial, sans-serif" font-size="24">Public project files live at the root.</text>
+  <text x="602" y="204" fill="#cbd5e1" font-family="Inter, Arial, sans-serif" font-size="24">The installable skill stays isolated and clean.</text>
+  <text x="602" y="244" fill="#cbd5e1" font-family="Inter, Arial, sans-serif" font-size="24">This keeps GitHub docs and skill-folder rules compatible.</text>
+  <rect x="598" y="300" width="368" height="156" rx="20" fill="#1d4ed8" opacity="0.18" stroke="#60a5fa"/>
+  <text x="628" y="356" fill="#dbeafe" font-family="Inter, Arial, sans-serif" font-size="28">Source of truth:</text>
+  <text x="628" y="398" fill="#ffffff" font-family="Menlo, Monaco, monospace" font-size="24">repo/skills/llm-rate-limiting</text>
+  <text x="628" y="440" fill="#dbeafe" font-family="Inter, Arial, sans-serif" font-size="24">Sync target: ~/.codex/skills/llm-rate-limiting</text>
+</svg>
