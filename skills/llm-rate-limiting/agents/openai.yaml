@@ -1,4 +1,4 @@
 interface:
   display_name: "LLM Rate Limiting"
   short_description: "Build resilient LLM rate limiting"
-  default_prompt: "Use $llm-rate-limiting to add provider-aware rate limiting, retries, and quota handling to my LLM integration."
+  default_prompt: "Use $llm-rate-limiting to add OpenAI- or Groq-aware rate limiting, retries, and quota handling to my LLM integration."
