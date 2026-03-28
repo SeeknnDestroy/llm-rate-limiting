@@ -1,6 +1,6 @@
 # LLM Rate Limiting
 
-`llm-rate-limiting` is a public skill project for teaching coding agents how to add provider-aware rate limiting, retries, quota handling, and resilience patterns to LLM integrations. It is built for real API constraints such as OpenAI usage tiers, response headers, shared model buckets, and Groq rate-limit semantics. If this saves you time, give the repo a star.
+`llm-rate-limiting` is a public skill project for teaching coding agents how to add provider-aware rate limiting, retries, quota handling, and resilience patterns to LLM integrations. It is built for real API constraints such as OpenAI usage tiers, response headers, shared model buckets, and Groq rate-limit semantics.
 
 ![Skill layout](./docs/images/skill-layout.svg)
 
