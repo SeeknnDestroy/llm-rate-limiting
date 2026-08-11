@@ -23,7 +23,7 @@
 ### Auto-detect local install
 
 ```bash
-git clone https://github.com/SeeknnDestroy/llm-rate-limiting.git
+git clone https://github.com/talhasarit/llm-rate-limiting.git
 cd llm-rate-limiting
 bash scripts/sync_local_skill.sh
 ```
